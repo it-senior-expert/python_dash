@@ -767,4 +767,4 @@ def update_weighted_graph(player1, player2, player3):
 app.layout = player_layout
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
