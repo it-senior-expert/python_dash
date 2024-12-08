@@ -1,5 +1,9 @@
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -13,7 +17,6 @@ import player_analysis
 import about
 from prediction import create_first_graph
 
-
 color_palette = px.colors.qualitative.Dark24
 
 
@@ -24,7 +27,7 @@ server = app.server
 
 # Download dataset using kagglehub
 try:
-    path = kagglehub.dataset_download("philiphyde1/nfl-stats-1999-2022")
+    path = kagglehub.dataset_download("philiphyde1/nfl-stats-1999-2022") 
     week_df = pd.DataFrame()
     year_df = pd.DataFrame()
     for file_name in os.listdir(path):
@@ -172,72 +175,72 @@ normalized_df = (
     .reset_index(drop=True)
 )
 
-#def create_wr_baseline_comparison(normalized_df, selected_players, player_colors):
+def create_wr_baseline_comparison(normalized_df, selected_players, player_colors):
     # Filter for WR and calculate the baseline
- #   wr_df = normalized_df[normalized_df['position'].str.upper() == 'WR']  # Ensure 'WR' matches correctly
+   wr_df = normalized_df[normalized_df['position'].str.upper() == 'WR']  # Ensure 'WR' matches correctly
 
     # Calculate total_touchdowns and total_yards for baseline
-  #  wr_df['total_touchdowns'] = wr_df['reception_td'] + wr_df['run_td']
-   # wr_df['total_yards'] = wr_df['receiving_yards'] + wr_df['rushing_yards']
-   # wr_df['total_performance'] = (
-    #    wr_df['total_touchdowns'] + wr_df['total_yards'] + wr_df['receptions']
-   # )
+   wr_df['total_touchdowns'] = wr_df['reception_td'] + wr_df['run_td']
+   wr_df['total_yards'] = wr_df['receiving_yards'] + wr_df['rushing_yards']
+   wr_df['total_performance'] = (
+       wr_df['total_touchdowns'] + wr_df['total_yards'] + wr_df['receptions']
+   )
 
     # Group by t and calculate the baseline (mean values for each time step)
-   # baseline_df = wr_df.groupby('t').agg(total_performance=('total_performance', 'mean')).reset_index()
+   baseline_df = wr_df.groupby('t').agg(total_performance=('total_performance', 'mean')).reset_index()
 
     # Calculate total performance for selected players
-   # selected_df = normalized_df[normalized_df['player_name'].isin(selected_players)]
+   selected_df = normalized_df[normalized_df['player_name'].isin(selected_players)]
 
-   # selected_df['total_touchdowns'] = selected_df['reception_td'] + selected_df['run_td']
-   # selected_df['total_yards'] = selected_df['receiving_yards'] + selected_df['rushing_yards']
-   # selected_df['total_performance'] = (
-    #    selected_df['total_touchdowns'] + selected_df['total_yards'] + selected_df['receptions']
-    #)
+   selected_df['total_touchdowns'] = selected_df['reception_td'] + selected_df['run_td']
+   selected_df['total_yards'] = selected_df['receiving_yards'] + selected_df['rushing_yards']
+   selected_df['total_performance'] = (
+       selected_df['total_touchdowns'] + selected_df['total_yards'] + selected_df['receptions']
+    )
 
     # Merge selected players with the baseline data on 't'
-  #  comparison_df = selected_df.merge(baseline_df, on='t', suffixes=('_player', '_baseline'))
+   comparison_df = selected_df.merge(baseline_df, on='t', suffixes=('_player', '_baseline'))
 
     # Create a Plotly figure
-   # fig = go.Figure()
+   fig = go.Figure()
 
     # Plot baseline total performance
-   # fig.add_trace(go.Scatter(
-    #    x=baseline_df['t'],
-     #   y=baseline_df['total_performance'],
-      #  mode='lines',
-       # name='Baseline Total Performance',
-       # line=dict(color='gray', dash='dash'),
-       # legendgroup='baseline'
-   # ))
+   fig.add_trace(go.Scatter(
+       x=baseline_df['t'],
+       y=baseline_df['total_performance'],
+       mode='lines',
+       name='Baseline Total Performance',
+       line=dict(color='gray', dash='dash'),
+       legendgroup='baseline'
+   ))
 
     # Plot each player's performance
-   # for player_name in selected_players:
-    #    player_data = comparison_df[comparison_df['player_name'] == player_name]
-     #   fig.add_trace(go.Scatter(
-      #      x=player_data['t'],
-       #     y=player_data['total_performance_player'],
-        #    mode='lines+markers',
-         #   name=f"Total Performance: {player_name}",
-          #  line=dict(color=player_colors[player_name]),
-           # marker=dict(size=8)
-       # ))
+   for player_name in selected_players:
+       player_data = comparison_df[comparison_df['player_name'] == player_name]
+       fig.add_trace(go.Scatter(
+           x=player_data['t'],
+           y=player_data['total_performance_player'],
+           mode='lines+markers',
+           name=f"Total Performance: {player_name}",
+           line=dict(color=player_colors[player_name]),
+           marker=dict(size=8)
+       ))
 
     # Update layout for the figure
-   # fig.update_layout(
-    #    title="Comparison of Selected Players Against WR Baseline",
-     #   xaxis_title="Normalized Time (t)",
-      #  yaxis_title="Performance Metrics",
-       # template='plotly_white',
-       # legend_title='Players',
-       # hovermode='closest',
-       # height=600
-    #)
+   fig.update_layout(
+       title="Comparison of Selected Players Against WR Baseline",
+       xaxis_title="Normalized Time (t)",
+       yaxis_title="Performance Metrics",
+       template='plotly_white',
+       legend_title='Players',
+       hovermode='closest',
+       height=600
+    )
 
-#    return fig
+   return fig
 
 # Call the function to generate the graph
-#wr_baseline_graph = create_wr_baseline_comparison(normalized_df)
+# wr_baseline_graph = create_wr_baseline_comparison(normalized_df, selected_players, player_colors)
 
 # Sample data
 players = ["Justin Jefferson", "Davante Adams", "Tyreek Hill"]
@@ -391,6 +394,31 @@ player_layout = html.Div([
 
     # Graph to display the baseline comparison
     dcc.Graph(id="baseline-comparison-graph", style={"marginTop": "20px"}),
+
+   html.Div([
+    html.H3("Player Sponsorship Prediction", style={"textAlign": "center"}),
+    html.Div([
+        html.Div([
+            html.Label("Select Player 1:"),
+            dcc.Dropdown(id="player1-1-dropdown", style={"width": "100%"})
+        ], style={"display": "inline-block", "width": "30%", "padding": "10px"}),
+
+        html.Div([
+            html.Label("Select Player 2:"),
+            dcc.Dropdown(id="player2-1-dropdown", style={"width": "100%"})
+        ], style={"display": "inline-block", "width": "30%", "padding": "10px"}),
+
+        html.Div([
+            html.Label("Select Player 3:"),
+            dcc.Dropdown(id="player3-1-dropdown", style={"width": "100%"})
+        ], style={"display": "inline-block", "width": "30%", "padding": "10px"})
+    ], style={"textAlign": "center"}),
+
+    html.Div([
+        dcc.Graph(id="player-metrics-visualization")
+    ], style={"marginTop": "30px"})
+])
+
 ])
 
 
@@ -647,6 +675,92 @@ app.layout = html.Div(
         html.Div(id="page-content", style={"padding": "20px"}),
     ]
 )
+# Initialize and train rf_model
+def initialize_rf_model():
+    # Prepare training data
+    training_data = year_df.copy()
+    training_data = training_data[[
+        "player_name", "age", "receptions", "receiving_yards",
+        "rushing_yards", "reception_td", "run_td"
+    ]]
+    training_data.rename(columns={
+        "receptions": "total_receptions",
+        "receiving_yards": "total_receiving_yards",
+        "rushing_yards": "total_rushing_yards",
+        "reception_td": "total_reception_td",
+        "run_td": "total_run_td"
+    }, inplace=True)
+
+    # Add suitability score for training
+    training_data["suitability_score"] = (
+        training_data["total_receptions"] * 0.3 +
+        training_data["total_receiving_yards"] * 0.4 +
+        training_data["total_rushing_yards"] * 0.1 +
+        training_data["total_reception_td"] * 0.15 +
+        training_data["total_run_td"] * 0.05
+    )
+
+    # Prepare features and target
+    X = training_data[[
+        "age", "total_receptions", "total_receiving_yards",
+        "total_rushing_yards", "total_reception_td", "total_run_td"
+    ]]
+    y = training_data["suitability_score"]
+
+    # Train the Random Forest model
+    rf_model = RandomForestRegressor(random_state=42, n_estimators=100)
+    rf_model.fit(X, y)
+    return rf_model
+
+
+# Train rf_model
+rf_model = initialize_rf_model()
+
+
+
+def train_models(df, rf_model=None):
+    """
+    Train or use pre-trained models to make predictions.
+    """
+    # Ensure required columns are present
+    required_columns = [
+        "age", "total_receptions", "total_receiving_yards",
+        "total_rushing_yards", "total_reception_td", "total_run_td", "player_name"
+    ]
+    for col in required_columns:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+
+    # Calculate the composite suitability score
+    df["suitability_score"] = (
+        df["total_receptions"] * 0.2 +
+        df["total_receiving_yards"] * 0.2 +
+        df["total_rushing_yards"] * 0.2 +
+        df["total_reception_td"] * 0.2 +
+        df["total_run_td"] * 0.2
+    )
+
+    # Features and target
+    X = df[[
+        "age", "total_receptions", "total_receiving_yards",
+        "total_rushing_yards", "total_reception_td", "total_run_td"
+    ]]
+    y = df["suitability_score"]
+
+    if rf_model is None:
+        # Train-test split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+        # Train Random Forest model
+        rf_model = RandomForestRegressor(random_state=42, n_estimators=100)
+        rf_model.fit(X_train, y_train)
+
+    # Make predictions
+    df["rf_predictions"] = rf_model.predict(X)
+
+    return {"rf_model": rf_model, "data": df}
+
+
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def display_page(pathname):
@@ -670,7 +784,6 @@ def display_page(pathname):
                 ),
             ]
         )
-    
     
 
 @app.callback(
@@ -736,30 +849,98 @@ def update_comparison_graph(season_range, player1, player2, player3):
     return player_analysis.update_graph(season_range, player1, player2, player3)
 
 #
-# @app.callback(
-  #  [Output("players-dropdown", "options"), 
-   #  Output("baseline-comparison-graph", "figure")],
-    #[Input("players-dropdown", "value")]
-#)
-#def update_dropdown_and_graph(selected_players):
+@app.callback(
+   [Output("players-dropdown", "options"), 
+    Output("baseline-comparison-graph", "figure")],
+    [Input("players-dropdown", "value")]
+)
+def update_dropdown_and_graph(selected_players):
     # Populate dropdown options with unique player names
     options = [{"label": player, "value": player} for player in sorted(normalized_df['player_name'].unique())]
 
     # If no players are selected, return default options and an empty graph
- #   if not selected_players or len(selected_players) > 3:
-  #      return options, go.Figure()
+    if not selected_players or len(selected_players) > 3:
+       return options, go.Figure()
 
     # Assign dynamic colors to the selected players
-   # player_colors = {
-    #    player: color_palette[i % len(color_palette)]
-     #   for i, player in enumerate(selected_players)
-    #}
+    player_colors = {
+       player: color_palette[i % len(color_palette)]
+       for i, player in enumerate(selected_players)
+    }
 
     # Create and return the baseline comparison graph
-   # baseline_graph = create_wr_baseline_comparison(normalized_df, selected_players, player_colors)
-   # return options, baseline_graph
+    baseline_graph = create_wr_baseline_comparison(normalized_df, selected_players, player_colors)
+    return options, baseline_graph
+
+
+@app.callback(
+    Output("player-metrics-visualization", "figure"),
+    [Input("player1-1-dropdown", "value"),
+     Input("player2-1-dropdown", "value"),
+     Input("player3-1-dropdown", "value")]
+)
+def update_weighted_graph(player1, player2, player3):
+    # Ensure valid player selections
+    selected_players = [player for player in [player1, player2, player3] if player]
+    if not selected_players:
+        return go.Figure()  # Return empty figure if no players are selected
+
+    # Filter the data for selected players
+    filtered_df = year_df[year_df["player_name"].isin(selected_players)]
+    if filtered_df.empty:
+        raise ValueError("No data available for the selected players.")
+
+    # Compute metrics for each selected player
+    metrics = filtered_df.groupby("player_name").agg({
+        "total_receptions": "sum",
+        "total_receiving_yards": "sum",
+        "total_rushing_yards": "sum",
+        "total_touchdowns": "sum",
+        "age": "mean"
+    }).reset_index()
+
+    # Add composite score (suitability_score)
+    metrics["suitability_score"] = (
+        metrics["total_receptions"] * 0.2 +
+        metrics["total_receiving_yards"] * 0.2 +
+        metrics["total_rushing_yards"] * 0.2 +
+        metrics["total_touchdowns"] * 0.2 +
+        metrics["age"] * 0.2
+    )
+
+    # Predict using the pre-trained Random Forest model
+    X = metrics[["age", "total_receptions", "total_receiving_yards", "total_rushing_yards", "total_touchdowns"]]
+    metrics["rf_predictions"] = rf_model.predict(X)
+
+    # Calculate weighted scores
+    max_seasons = max(year_df.groupby("player_name")["season"].nunique())
+    metrics["seasons_played"] = year_df.groupby("player_name")["season"].nunique().reindex(metrics["player_name"]).fillna(1)
+    metrics["weights"] = max_seasons / metrics["seasons_played"]
+    metrics["weighted_score"] = metrics["rf_predictions"] * metrics["weights"]
+
+    # Generate the bar graph
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=metrics["player_name"],
+                y=metrics["weighted_score"],
+                text=[f"{score:.2f}" for score in metrics["weighted_score"]],
+                textposition="outside",
+                marker_color=px.colors.sequential.Aggrnyl[:len(metrics)]
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title="Weighted Sponsorship Scores",
+        xaxis_title="Player",
+        yaxis_title="Weighted Score",
+        template="plotly_white"
+    )
+
+    return fig
 
 
 # Run Server
-# if __name__ == "__main__":
-#     app.run_server(host='0.0.0.0', port = 8000, debug=False)
+if __name__ == "__main__":
+    app.run_server(host='0.0.0.0', port = 8000, debug=False)
